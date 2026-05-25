@@ -2,683 +2,138 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Chess yearbook — Roman Rybachok</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<title>Chess stats — romanrybachok</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
 <style>
-  :root {
-    --ink: #0e0d0a;
-    --paper: #f5efe2;
-    --paper-2: #ebe3d2;
-    --gold: #b78c43;
-    --gold-2: #8a6628;
-    --blood: #8b1a1a;
-    --shade: rgba(14,13,10,.08);
-    --rule: rgba(14,13,10,.18);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
-  body {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 17px;
-    line-height: 1.55;
-    background-image:
-      radial-gradient(circle at 20% 10%, rgba(183,140,67,.06), transparent 40%),
-      radial-gradient(circle at 80% 70%, rgba(139,26,26,.04), transparent 50%),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .055 0 0 0 0 .051 0 0 0 0 .039 0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 56px 32px 120px; }
-
-  /* ===== Masthead ===== */
-  .masthead { border-bottom: 3px double var(--ink); padding-bottom: 24px; margin-bottom: 36px; position: relative; }
-  .masthead .meta-top {
-    display: flex; justify-content: space-between; align-items: baseline;
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .18em;
-    text-transform: uppercase; color: var(--gold-2); margin-bottom: 18px;
-  }
-  .title {
-    font-family: 'Fraunces', serif; font-weight: 900;
-    font-size: clamp(56px, 9vw, 124px);
-    line-height: .88; letter-spacing: -.04em;
-    font-variation-settings: "SOFT" 100, "WONK" 1;
-    margin: 0;
-  }
-  .title em { font-style: italic; font-weight: 400; color: var(--gold-2); font-variation-settings: "SOFT" 100, "WONK" 1; }
-  .subtitle {
-    display: flex; justify-content: space-between; align-items: end;
-    margin-top: 18px; gap: 32px; flex-wrap: wrap;
-  }
-  .deck {
-    font-family: 'Cormorant Garamond', serif; font-style: italic;
-    font-size: 22px; max-width: 640px; color: rgba(14,13,10,.78);
-  }
-  .colophon { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-align: right; line-height: 1.7; color: rgba(14,13,10,.6); }
-  .colophon b { color: var(--ink); font-weight: 700; }
-
-  /* ===== Stat block ===== */
-  .stats-row {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 0; margin: 40px 0;
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-  }
-  .stat {
-    padding: 28px 20px; border-left: 1px solid var(--rule);
-    position: relative;
-  }
-  .stat:first-child { border-left: none; }
-  .stat .num {
-    font-family: 'Fraunces', serif; font-weight: 700;
-    font-size: clamp(36px, 4.5vw, 58px); line-height: 1;
-    letter-spacing: -.03em; font-variation-settings: "SOFT" 50;
-  }
-  .stat .label {
-    font-family: 'JetBrains Mono', monospace; font-size: 10px;
-    letter-spacing: .22em; text-transform: uppercase;
-    color: var(--gold-2); margin-top: 10px;
-  }
-  .stat .sub { font-family: 'Cormorant Garamond', serif; font-style: italic; color: rgba(14,13,10,.6); margin-top: 4px; font-size: 14px;}
-
-  /* ===== Sections ===== */
-  section { margin-top: 72px; }
-  .section-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 24px;}
-  .section-num {
-    font-family: 'JetBrains Mono', monospace; font-size: 12px;
-    color: var(--blood); letter-spacing: .15em;
-  }
-  .section-title {
-    font-family: 'Fraunces', serif; font-weight: 500;
-    font-size: 36px; letter-spacing: -.02em; font-style: italic;
-    font-variation-settings: "SOFT" 100;
-    margin: 0; flex: 1;
-  }
-  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(14,13,10,.5); letter-spacing: .2em; }
-
-  /* ===== World map ===== */
-  .map-card {
-    background: var(--paper-2);
-    border: 1px solid var(--rule);
-    padding: 24px;
-    position: relative;
-    box-shadow: 8px 8px 0 var(--shade);
-  }
-  #map { width: 100%; height: 540px; }
-  #map .land { stroke: var(--paper); stroke-width: .5px; transition: fill .15s; cursor: pointer; }
-  #map .land:hover { stroke: var(--ink); stroke-width: 1.2px; }
-  #map .graticule { fill: none; stroke: rgba(14,13,10,.07); stroke-width: .4px; }
-  #map .sphere { fill: none; stroke: rgba(14,13,10,.3); stroke-width: 1px; }
-  .legend { display: flex; align-items: center; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(14,13,10,.7); margin-top: 18px; }
-  .legend-bar { display: flex; height: 14px; border: 1px solid var(--ink); }
-  .legend-bar span { width: 28px; }
-
-  /* ===== Country leaderboard ===== */
-  .countries-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; margin-top: 28px; }
-  .country-row {
-    display: grid; grid-template-columns: 28px 28px 1fr auto;
-    gap: 12px; align-items: center;
-    padding: 8px 4px; border-bottom: 1px dotted var(--rule);
-    font-family: 'JetBrains Mono', monospace; font-size: 13px;
-    cursor: pointer; transition: background .12s;
-  }
-  .country-row:hover { background: rgba(183,140,67,.12); }
-  .country-row .rank { color: var(--blood); font-weight: 700; }
-  .country-row .flag { font-size: 18px; }
-  .country-row .name { font-family: 'Cormorant Garamond', serif; font-size: 17px; }
-  .country-row .count { font-weight: 700; color: var(--ink); text-align: right; }
-  .country-row .bar { grid-column: 1/-1; height: 2px; background: var(--gold); margin-top: 4px; transform-origin: left; transition: transform .8s ease-out; }
-
-  /* ===== Rating timeline ===== */
-  .rating-card {
-    padding: 24px;
-    border: 1px solid var(--rule);
-    background: #fffaef;
-    box-shadow: 8px 8px 0 var(--shade);
-  }
-  #rating-svg { width: 100%; display: block; }
-  .rating-axis text { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: rgba(14,13,10,.55); letter-spacing: .1em;}
-  .rating-axis line, .rating-axis path { stroke: var(--rule); }
-  .rating-area { fill: url(#area-grad); }
-  .rating-line { fill: none; stroke: var(--ink); stroke-width: 1.6; }
-  .rating-line.smooth { stroke: var(--blood); stroke-width: 2.4; }
-  .rating-events line { stroke: var(--gold-2); stroke-width: 1; stroke-dasharray: 3 3; }
-  .rating-events text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 13px; fill: var(--gold-2); }
-  .peak-dot { fill: var(--blood); }
-
-  /* ===== Clock face ===== */
-  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-  @media (max-width: 800px) { .duo, .countries-wrap, .stats-row { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 500px) { .stats-row { grid-template-columns: 1fr 1fr; } .stat { border-left: none; border-top: 1px solid var(--rule); } }
-
-  .clock-card, .weekday-card {
-    background: var(--paper-2); border: 1px solid var(--rule);
-    padding: 28px; box-shadow: 8px 8px 0 var(--shade);
-  }
-  #clock-svg { width: 100%; height: auto; display: block; }
-  .clock-spoke { stroke: var(--ink); stroke-width: .5; }
-  .clock-arc { fill: var(--blood); opacity: .82; transition: opacity .2s; }
-  .clock-arc:hover { opacity: 1; }
-  .clock-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--ink); }
-  .clock-ring { fill: none; stroke: var(--ink); stroke-width: 1.2; }
-  .clock-title { font-family: 'Fraunces', serif; font-style: italic; font-size: 20px; }
-
-  .weekday-bar { display: flex; align-items: end; height: 240px; gap: 6px; margin-top: 24px; }
-  .weekday-bar > div { flex: 1; background: var(--ink); position: relative; transition: background .2s; }
-  .weekday-bar > div:hover { background: var(--blood); }
-  .weekday-bar > div::after {
-    content: attr(data-label); position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(14,13,10,.7);
-  }
-  .weekday-bar > div::before {
-    content: attr(data-count); position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink); font-weight: 700;
-  }
-
-  /* ===== Records table ===== */
-  .records {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
-    border: 1px solid var(--ink); background: var(--paper-2);
-  }
-  .record {
-    padding: 24px 20px; border-left: 1px solid var(--ink);
-    text-align: center;
-  }
-  .record:first-child { border-left: none; }
-  .record .fmt {
-    font-family: 'JetBrains Mono', monospace; font-size: 10px;
-    letter-spacing: .22em; text-transform: uppercase; color: var(--gold-2);
-  }
-  .record .peak {
-    font-family: 'Fraunces', serif; font-weight: 700; font-size: 52px;
-    line-height: 1; margin: 14px 0 4px; letter-spacing: -.03em;
-  }
-  .record .now {
-    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: rgba(14,13,10,.6);
-  }
-  .record .wld {
-    margin-top: 14px; font-family: 'Cormorant Garamond', serif; font-style: italic;
-    font-size: 14px; color: rgba(14,13,10,.7);
-  }
-
-  /* ===== Tooltip ===== */
-  .tooltip {
-    position: fixed; pointer-events: none;
-    background: var(--ink); color: var(--paper);
-    padding: 8px 14px; font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; letter-spacing: .05em;
-    opacity: 0; transition: opacity .1s; z-index: 100;
-    border: 1px solid var(--gold);
-  }
-  .tooltip b { color: var(--gold); font-weight: 700; }
-
-  /* ===== Footer pull-quote ===== */
-  .pull {
-    margin-top: 100px; padding: 60px 40px;
-    border-top: 3px double var(--ink); border-bottom: 3px double var(--ink);
-    text-align: center;
-  }
-  .pull q {
-    font-family: 'Fraunces', serif; font-style: italic; font-weight: 400;
-    font-size: clamp(28px, 4vw, 48px); line-height: 1.15;
-    quotes: "«" "»"; letter-spacing: -.01em;
-    font-variation-settings: "SOFT" 100, "WONK" 1;
-  }
-  .pull .attr { margin-top: 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .25em; color: var(--gold-2); }
-
-  /* ===== Reveal animations ===== */
-  .reveal { opacity: 0; transform: translateY(8px); transition: opacity .8s ease, transform .8s ease; }
-  .reveal.in { opacity: 1; transform: translateY(0); }
-
-  /* Decorative chess piece */
-  .piece-deco { position: absolute; top: -40px; right: -10px; font-size: 140px; line-height: 1; color: var(--gold); opacity: .25; transform: rotate(-8deg); pointer-events: none; user-select: none; }
-
-  /* Filter chip */
-  .filters { display: flex; gap: 8px; margin-bottom: 16px; }
-  .chip {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .15em;
-    text-transform: uppercase; padding: 6px 12px; border: 1px solid var(--ink);
-    background: transparent; color: var(--ink); cursor: pointer;
-  }
-  .chip.active { background: var(--ink); color: var(--paper); }
+  body { font-family: system-ui, -apple-system, sans-serif; background:#1a1a1a; color:#eee; max-width:1100px; margin:24px auto; padding:0 16px; }
+  h1,h2 { font-weight: 600; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin: 16px 0; }
+  .card { background:#262626; border-radius:10px; padding:16px; }
+  .big { font-size:32px; font-weight:700; }
+  .muted { color:#888; font-size:13px; }
+  canvas { background:#222; border-radius:8px; padding:8px; }
+  #map { width:100%; height:520px; background:#222; border-radius:8px; }
+  .country path { fill:#333; stroke:#555; stroke-width:0.4px; }
+  .country path.active { stroke:#888; }
+  .tooltip { position:absolute; background:#000; color:#fff; padding:6px 10px; border-radius:4px; font-size:13px; pointer-events:none; opacity:0; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<h1>♟️ Chess.com stats — <span id="u"></span></h1>
+<div class="muted" id="meta"></div>
 
-  <header class="masthead">
-    <div class="piece-deco">♞</div>
-    <div class="meta-top">
-      <span>Vol. XI · No. 35 586</span>
-      <span id="dateline">Тернопіль · 2026</span>
-    </div>
-    <h1 class="title">Шаховий <em>щорічник</em>.</h1>
-    <div class="subtitle">
-      <div class="deck">Одинадцять років, 35 тисяч партій і півтора мільйона ходів — повний звіт за період з липня 2015 по травень 2026 року.</div>
-      <div class="colophon">
-        Гравець · <b>Roman Rybachok</b><br>
-        Профіль · <b>romanrybachok</b><br>
-        Дата звіту · <b id="today"></b>
-      </div>
-    </div>
-  </header>
-
-  <!-- Numbers row -->
-  <div class="stats-row">
-    <div class="stat reveal">
-      <div class="num" data-target="35586">0</div>
-      <div class="label">партій</div>
-      <div class="sub">за 11 років</div>
-    </div>
-    <div class="stat reveal">
-      <div class="num" data-target="1427745">0</div>
-      <div class="label">ходів</div>
-      <div class="sub">2 855 491 півходів</div>
-    </div>
-    <div class="stat reveal">
-      <div class="num" data-target="18288">0</div>
-      <div class="label">суперників</div>
-      <div class="sub">унікальних</div>
-    </div>
-    <div class="stat reveal">
-      <div class="num" data-target="204">0</div>
-      <div class="label">країн</div>
-      <div class="sub">з усієї планети</div>
-    </div>
-  </div>
-
-  <!-- I. World map -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">I.</span>
-      <h2 class="section-title">Географія супротиву</h2>
-      <span class="section-kicker">naведи курсор на країну</span>
-    </div>
-    <div class="map-card reveal">
-      <svg id="map" viewBox="0 0 1000 540"></svg>
-      <div class="legend">
-        <span>менше партій</span>
-        <div class="legend-bar" id="legend-bar"></div>
-        <span>більше партій</span>
-        <span style="margin-left: auto; color: var(--blood); font-style: italic; font-family: 'Cormorant Garamond', serif; font-size: 14px;">Найчастіший опонент: <b id="top-country">—</b></span>
-      </div>
-    </div>
-
-    <h3 style="font-family: 'Fraunces', serif; font-style: italic; font-weight: 400; font-size: 22px; margin: 36px 0 12px;">Топ-30 країн</h3>
-    <div class="countries-wrap" id="country-list"></div>
-  </section>
-
-  <!-- II. Rating arc -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">II.</span>
-      <h2 class="section-title">Шлях наверх</h2>
-      <span class="section-kicker">середній рейтинг блітцу місяць за місяцем</span>
-    </div>
-    <div class="rating-card reveal">
-      <svg id="rating-svg" viewBox="0 0 1100 340"></svg>
-    </div>
-  </section>
-
-  <!-- III. Time -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">III.</span>
-      <h2 class="section-title">Хронометр</h2>
-      <span class="section-kicker">коли граєш найчастіше</span>
-    </div>
-    <div class="duo">
-      <div class="clock-card reveal">
-        <div class="clock-title">Доба · UTC</div>
-        <svg id="clock-svg" viewBox="-160 -160 320 320"></svg>
-        <div style="font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: rgba(14,13,10,.7); margin-top: 8px;">
-          Пік активності — <b id="peak-hour">—</b>. Цикл показує всі 24 години доби; довжина променя пропорційна кількості зіграних партій у цю годину.
-        </div>
-      </div>
-      <div class="weekday-card reveal">
-        <div class="clock-title">Тиждень</div>
-        <div class="weekday-bar" id="weekdays"></div>
-        <div style="font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: rgba(14,13,10,.7); margin-top: 36px;">
-          Розподіл напрочуд рівний — шахи не знають вихідних. Лише субота трохи менша за решту днів.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- IV. Records -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">IV.</span>
-      <h2 class="section-title">Особисті рекорди</h2>
-      <span class="section-kicker">за форматами</span>
-    </div>
-    <div class="records reveal">
-      <div class="record">
-        <div class="fmt">Bullet</div>
-        <div class="peak">2 428</div>
-        <div class="now">зараз 2 338</div>
-        <div class="wld">1193 / 975 / 169</div>
-      </div>
-      <div class="record">
-        <div class="fmt">Blitz</div>
-        <div class="peak">2 539</div>
-        <div class="now">зараз 2 372</div>
-        <div class="wld">16 250 / 13 779 / 3 151</div>
-      </div>
-      <div class="record">
-        <div class="fmt">Rapid</div>
-        <div class="peak">2 199</div>
-        <div class="now">зараз 2 199</div>
-        <div class="wld">45 / 8 / 3</div>
-      </div>
-      <div class="record">
-        <div class="fmt">Daily</div>
-        <div class="peak">1 652</div>
-        <div class="now">last 2019</div>
-        <div class="wld">2 / 0 / 0</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- V. Curiosities -->
-  <section>
-    <div class="section-head">
-      <span class="section-num">V.</span>
-      <h2 class="section-title">Цікаві дрібниці</h2>
-      <span class="section-kicker">статистична курйозна добірка</span>
-    </div>
-    <div id="curios" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;"></div>
-  </section>
-
-  <div class="pull">
-    <q id="quote-text"></q>
-    <div class="attr">Дані chess.com Public API · станом на травень 2026</div>
-  </div>
-
+<div class="grid">
+  <div class="card"><div class="muted">Партій</div><div class="big" id="t-games"></div></div>
+  <div class="card"><div class="muted">Ходів (приблизно)</div><div class="big" id="t-moves"></div></div>
+  <div class="card"><div class="muted">Унікальних суперників</div><div class="big" id="t-opps"></div></div>
+  <div class="card"><div class="muted">Win rate</div><div class="big" id="t-wr"></div></div>
 </div>
 
-<div class="tooltip" id="tooltip"></div>
+<h2>🌍 Суперники по країнах</h2>
+<div id="map"></div>
+<div id="country-list" class="muted" style="margin-top:8px"></div>
+
+<h2>📈 Рейтинг по місяцях</h2>
+<canvas id="rating" height="120"></canvas>
+
+<h2>🕒 Активність: година доби (локальна)</h2>
+<canvas id="hours" height="80"></canvas>
+
+<h2>📅 День тижня</h2>
+<canvas id="weekdays" height="80"></canvas>
+
+<div class="tooltip" id="tt"></div>
 
 <script>
-const D = {"username": "romanrybachok", "profile": {"name": "Roman Rybachok", "country": "UA", "joined": 1435777209, "location": "Ternopil"}, "totals": {"games": 35586, "plies": 2855491, "moves_approx": 1427745, "unique_opponents": 18288, "wins": 17497, "losses": 14764, "draws": 3325, "win_pct": 49.17}, "by_time_class": {"blitz": 33186, "bullet": 2339, "rapid": 59, "daily": 2}, "by_country": {"US": 2290, "RU": 794, "DE": 737, "IN": 669, "FR": 637, "BR": 631, "ES": 505, "PH": 493, "XX": 476, "PL": 458, "UA": 422, "GB": 412, "RS": 405, "CA": 386, "IT": 341, "MX": 318, "NL": 315, "TR": 274, "AR": 253, "IL": 231, "ID": 224, "IR": 221, "CZ": 203, "RO": 202, "GR": 195, "SE": 184, "NO": 180, "HR": 166, "HU": 162, "DK": 160, "BG": 152, "CH": 152, "CO": 150, "AU": 149, "EG": 139, "PE": 135, "AM": 135, "VN": 131, "BE": 122, "AT": 116, "GE": 114, "BA": 112, "KZ": 108, "FI": 94, "UZ": 93, "AZ": 90, "AL": 87, "MM": 87, "IS": 83, "MY": 82, "JP": 79, "CU": 79, "SI": 78, "PT": 76, "CN": 74, "SK": 71, "XE": 70, "VE": 66, "LT": 66, "SG": 64, "MK": 64, "CL": 63, "MA": 60, "ZA": 57, "ME": 51, "XC": 51, "AE": 51, "EU": 49, "XK": 46, "LV": 45, "TN": 44, "DO": 43, "BY": 43, "PS": 42, "BD": 42, "EC": 39, "DZ": 38, "UY": 38, "NZ": 36, "MN": 36, "PR": 35, "KR": 35, "IE": 35, "XS": 34, "EE": 33, "NP": 32, "SA": 30, "CR": 30, "TH": 29, "PK": 29, "IQ": 29, "KP": 28, "NG": 28, "MD": 27, "HK": 26, "SY": 26, "AF": 23, "LK": 23, "XB": 22, "VA": 22, "KG": 21, "SV": 19, "BO": 18, "LB": 17, "PY": 17, "CY": 16, "NI": 16, "TW": 15, "JM": 15, "ZW": 14, "ZM": 14, "GT": 14, "LU": 14, "SD": 13, "LY": 13, "JO": 13, "FO": 13, "XW": 12, "XA": 12, "HN": 12, "SC": 12, "AO": 12, "PM": 12, "BW": 11, "MT": 11, "UG": 11, "TJ": 10, "GL": 10, "TT": 10, "YE": 8, "XG": 8, "TV": 8, "FJ": 8, "DJ": 7, "TM": 7, "QA": 7, "BT": 7, "VU": 7, "PA": 7, "AW": 7, "GI": 7, "KE": 7, "MG": 6, "KI": 6, "IM": 6, "LC": 6, "BB": 6, "CM": 6, "VI": 6, "GP": 6, "TL": 6, "MZ": 6, "AG": 6, "SB": 5, "PG": 5, "FK": 5, "MC": 5, "LI": 5, "MH": 5, "CW": 5, "NR": 5, "ET": 5, "AX": 5, "MV": 5, "XO": 5, "SO": 4, "OM": 4, "EH": 4, "VC": 4, "BS": 4, "GH": 4, "MQ": 4, "AI": 4, "KH": 4, "AD": 4, "RE": 3, "WS": 3, "GA": 3, "MO": 3, "BM": 3, "HT": 3, "BN": 3, "BF": 3, "FM": 3, "SR": 3, "GU": 3, "LA": 3, "PF": 3, "SM": 3, "SZ": 3, "GM": 3, "MW": 3, "SN": 3, "SX": 3, "KW": 3, "VG": 3, "BH": 3, "NC": 2, "TZ": 2, "GF": 2, "KY": 2, "SS": 2, "KN": 2, "MR": 2, "TD": 2, "NA": 2, "DM": 2, "SL": 2, "ST": 2, "GN": 2, "NE": 2, "CD": 2, "LR": 2, "MS": 2, "TG": 2, "BJ": 1, "KM": 1, "YT": 1, "JE": 1, "PW": 1, "XP": 1, "RW": 1, "ER": 1, "CV": 1, "GW": 1, "TO": 1, "LS": 1, "MP": 1, "GS": 1, "GY": 1, "CI": 1}, "by_hour_utc": {"0": 1173, "1": 640, "2": 365, "3": 183, "4": 130, "5": 138, "6": 153, "7": 201, "8": 313, "9": 650, "10": 1130, "11": 1651, "12": 2011, "13": 2268, "14": 2528, "15": 2600, "16": 2728, "17": 2783, "18": 2708, "19": 2676, "20": 2551, "21": 2339, "22": 2111, "23": 1556}, "by_weekday": {"0": 5173, "1": 5234, "2": 5153, "3": 5048, "4": 5005, "5": 4649, "6": 5324}, "by_opening_eco": {}, "monthly": {"2015-07": {"games": 8, "avg_rating": 1362}, "2015-08": {"games": 3, "avg_rating": 1435}, "2016-03": {"games": 33, "avg_rating": 1793}, "2016-04": {"games": 9, "avg_rating": 1861}, "2016-11": {"games": 1, "avg_rating": 1829}, "2017-07": {"games": 155, "avg_rating": 1753}, "2017-08": {"games": 112, "avg_rating": 1876}, "2017-09": {"games": 93, "avg_rating": 1849}, "2017-10": {"games": 120, "avg_rating": 1884}, "2017-11": {"games": 56, "avg_rating": 1876}, "2017-12": {"games": 5, "avg_rating": 1931}, "2018-01": {"games": 83, "avg_rating": 1936}, "2018-02": {"games": 625, "avg_rating": 2048}, "2018-03": {"games": 236, "avg_rating": 2070}, "2018-04": {"games": 131, "avg_rating": 2028}, "2018-05": {"games": 325, "avg_rating": 2033}, "2018-06": {"games": 214, "avg_rating": 2058}, "2018-07": {"games": 214, "avg_rating": 2046}, "2018-08": {"games": 193, "avg_rating": 2043}, "2018-09": {"games": 262, "avg_rating": 2140}, "2018-10": {"games": 111, "avg_rating": 2066}, "2018-11": {"games": 170, "avg_rating": 2012}, "2018-12": {"games": 250, "avg_rating": 2058}, "2019-01": {"games": 299, "avg_rating": 2105}, "2019-02": {"games": 243, "avg_rating": 2110}, "2019-03": {"games": 204, "avg_rating": 2055}, "2019-04": {"games": 229, "avg_rating": 2020}, "2019-05": {"games": 340, "avg_rating": 2068}, "2019-06": {"games": 344, "avg_rating": 2152}, "2019-07": {"games": 388, "avg_rating": 2148}, "2019-08": {"games": 403, "avg_rating": 2083}, "2019-09": {"games": 330, "avg_rating": 2118}, "2019-10": {"games": 349, "avg_rating": 2106}, "2019-11": {"games": 268, "avg_rating": 2131}, "2019-12": {"games": 359, "avg_rating": 2120}, "2020-01": {"games": 289, "avg_rating": 2158}, "2020-02": {"games": 207, "avg_rating": 2131}, "2020-03": {"games": 36, "avg_rating": 2163}, "2020-04": {"games": 9, "avg_rating": 2148}, "2020-05": {"games": 13, "avg_rating": 2170}, "2020-06": {"games": 44, "avg_rating": 2156}, "2020-07": {"games": 6, "avg_rating": 2118}, "2020-08": {"games": 300, "avg_rating": 2235}, "2020-09": {"games": 347, "avg_rating": 2177}, "2020-10": {"games": 329, "avg_rating": 2157}, "2020-11": {"games": 371, "avg_rating": 2168}, "2020-12": {"games": 405, "avg_rating": 2190}, "2021-01": {"games": 456, "avg_rating": 2206}, "2021-02": {"games": 450, "avg_rating": 2195}, "2021-03": {"games": 770, "avg_rating": 2142}, "2021-04": {"games": 117, "avg_rating": 2161}, "2021-05": {"games": 9, "avg_rating": 2151}, "2021-06": {"games": 17, "avg_rating": 2148}, "2021-07": {"games": 25, "avg_rating": 2164}, "2021-08": {"games": 6, "avg_rating": 2145}, "2021-09": {"games": 9, "avg_rating": 2118}, "2021-10": {"games": 138, "avg_rating": 2174}, "2021-11": {"games": 564, "avg_rating": 2154}, "2021-12": {"games": 490, "avg_rating": 2188}, "2022-01": {"games": 660, "avg_rating": 2237}, "2022-02": {"games": 320, "avg_rating": 2254}, "2022-03": {"games": 291, "avg_rating": 2195}, "2022-04": {"games": 414, "avg_rating": 2227}, "2022-05": {"games": 471, "avg_rating": 2264}, "2022-06": {"games": 499, "avg_rating": 2284}, "2022-07": {"games": 329, "avg_rating": 2221}, "2022-08": {"games": 370, "avg_rating": 2195}, "2022-09": {"games": 343, "avg_rating": 2254}, "2022-10": {"games": 208, "avg_rating": 2204}, "2022-11": {"games": 245, "avg_rating": 2232}, "2022-12": {"games": 274, "avg_rating": 2178}, "2023-01": {"games": 426, "avg_rating": 2201}, "2023-02": {"games": 568, "avg_rating": 2264}, "2023-03": {"games": 981, "avg_rating": 2237}, "2023-04": {"games": 705, "avg_rating": 2259}, "2023-05": {"games": 586, "avg_rating": 2261}, "2023-06": {"games": 1016, "avg_rating": 2272}, "2023-07": {"games": 638, "avg_rating": 2283}, "2023-08": {"games": 606, "avg_rating": 2288}, "2023-09": {"games": 381, "avg_rating": 2303}, "2023-10": {"games": 601, "avg_rating": 2296}, "2023-11": {"games": 458, "avg_rating": 2358}, "2023-12": {"games": 682, "avg_rating": 2335}, "2024-01": {"games": 605, "avg_rating": 2330}, "2024-02": {"games": 423, "avg_rating": 2349}, "2024-03": {"games": 335, "avg_rating": 2293}, "2024-04": {"games": 273, "avg_rating": 2297}, "2024-05": {"games": 232, "avg_rating": 2289}, "2024-06": {"games": 215, "avg_rating": 2299}, "2024-07": {"games": 166, "avg_rating": 2311}, "2024-08": {"games": 231, "avg_rating": 2350}, "2024-09": {"games": 914, "avg_rating": 2290}, "2024-10": {"games": 245, "avg_rating": 2272}, "2024-11": {"games": 94, "avg_rating": 2346}, "2024-12": {"games": 215, "avg_rating": 2314}, "2025-01": {"games": 293, "avg_rating": 2271}, "2025-02": {"games": 190, "avg_rating": 2294}, "2025-03": {"games": 182, "avg_rating": 2325}, "2025-04": {"games": 250, "avg_rating": 2302}, "2025-05": {"games": 165, "avg_rating": 2363}, "2025-06": {"games": 231, "avg_rating": 2318}, "2025-07": {"games": 327, "avg_rating": 2298}, "2025-08": {"games": 326, "avg_rating": 2297}, "2025-09": {"games": 278, "avg_rating": 2295}, "2025-10": {"games": 452, "avg_rating": 2317}, "2025-11": {"games": 579, "avg_rating": 2361}, "2025-12": {"games": 1291, "avg_rating": 2375}, "2026-01": {"games": 614, "avg_rating": 2391}, "2026-02": {"games": 483, "avg_rating": 2362}, "2026-03": {"games": 481, "avg_rating": 2423}, "2026-04": {"games": 506, "avg_rating": 2438}, "2026-05": {"games": 346, "avg_rating": 2388}}, "stats": {"chess_daily": {"last": {"rating": 1652, "date": 1573401330, "rd": 257}, "best": {"rating": 1652, "date": 1573401330, "game": "https://www.chess.com/game/daily/239736206"}, "record": {"win": 2, "loss": 0, "draw": 0, "time_per_move": 6235, "timeout_percent": 0}}, "chess_rapid": {"last": {"rating": 2199, "date": 1779704396, "rd": 44}, "best": {"rating": 2199, "date": 1779704396, "game": "https://www.chess.com/game/live/168921003738"}, "record": {"win": 45, "loss": 8, "draw": 3}}, "chess_bullet": {"last": {"rating": 2338, "date": 1777669440, "rd": 48}, "best": {"rating": 2428, "date": 1766859457, "game": "https://www.chess.com/game/live/119275167089"}, "record": {"win": 1193, "loss": 975, "draw": 169}}, "chess_blitz": {"last": {"rating": 2372, "date": 1779656065, "rd": 22}, "best": {"rating": 2539, "date": 1777495248, "game": "https://www.chess.com/game/live/169126074268"}, "record": {"win": 16250, "loss": 13779, "draw": 3151}}, "tactics": {"highest": {"rating": 2273, "date": 1435777209}, "lowest": {"rating": 2273, "date": 1435777209}}, "puzzle_rush": {"best": {"total_attempts": 24, "score": 23}}}};
+const D = {"username": "romanrybachok", "profile": {"name": "Roman Rybachok", "country": "UA", "joined": 1435777209, "location": "Ternopil"}, "totals": {"games": 35586, "plies": 2855491, "moves_approx": 1427745, "unique_opponents": 18288, "wins": 17497, "losses": 14764, "draws": 3325, "win_pct": 49.17}, "by_time_class": {"blitz": 33186, "bullet": 2339, "rapid": 59, "daily": 2}, "by_country": {"US": 2290, "RU": 794, "DE": 737, "IN": 669, "FR": 637, "BR": 631, "ES": 505, "PH": 493, "XX": 476, "PL": 458, "UA": 422, "GB": 412, "RS": 405, "CA": 386, "IT": 341, "MX": 318, "NL": 315, "TR": 274, "AR": 253, "IL": 231, "ID": 224, "IR": 221, "CZ": 203, "RO": 202, "GR": 195, "SE": 184, "NO": 180, "HR": 166, "HU": 162, "DK": 160, "BG": 152, "CH": 152, "CO": 150, "AU": 149, "EG": 139, "PE": 135, "AM": 135, "VN": 131, "BE": 122, "AT": 116, "GE": 114, "BA": 112, "KZ": 108, "FI": 94, "UZ": 93, "AZ": 90, "AL": 87, "MM": 87, "IS": 83, "MY": 82, "JP": 79, "CU": 79, "SI": 78, "PT": 76, "CN": 74, "SK": 71, "XE": 70, "VE": 66, "LT": 66, "SG": 64, "MK": 64, "CL": 63, "MA": 60, "ZA": 57, "ME": 51, "XC": 51, "AE": 51, "EU": 49, "XK": 46, "LV": 45, "TN": 44, "DO": 43, "BY": 43, "PS": 42, "BD": 42, "EC": 39, "DZ": 38, "UY": 38, "NZ": 36, "MN": 36, "PR": 35, "KR": 35, "IE": 35, "XS": 34, "EE": 33, "NP": 32, "SA": 30, "CR": 30, "TH": 29, "PK": 29, "IQ": 29, "KP": 28, "NG": 28, "MD": 27, "HK": 26, "SY": 26, "AF": 23, "LK": 23, "XB": 22, "VA": 22, "KG": 21, "SV": 19, "BO": 18, "LB": 17, "PY": 17, "CY": 16, "NI": 16, "TW": 15, "JM": 15, "ZW": 14, "ZM": 14, "GT": 14, "LU": 14, "SD": 13, "LY": 13, "JO": 13, "FO": 13, "XW": 12, "XA": 12, "HN": 12, "SC": 12, "AO": 12, "PM": 12, "BW": 11, "MT": 11, "UG": 11, "TJ": 10, "GL": 10, "TT": 10, "YE": 8, "XG": 8, "TV": 8, "FJ": 8, "DJ": 7, "TM": 7, "QA": 7, "BT": 7, "VU": 7, "PA": 7, "AW": 7, "GI": 7, "KE": 7, "MG": 6, "KI": 6, "IM": 6, "LC": 6, "BB": 6, "CM": 6, "VI": 6, "GP": 6, "TL": 6, "MZ": 6, "AG": 6, "SB": 5, "PG": 5, "FK": 5, "MC": 5, "LI": 5, "MH": 5, "CW": 5, "NR": 5, "ET": 5, "AX": 5, "MV": 5, "XO": 5, "SO": 4, "OM": 4, "EH": 4, "VC": 4, "BS": 4, "GH": 4, "MQ": 4, "AI": 4, "KH": 4, "AD": 4, "RE": 3, "WS": 3, "GA": 3, "MO": 3, "BM": 3, "HT": 3, "BN": 3, "BF": 3, "FM": 3, "SR": 3, "GU": 3, "LA": 3, "PF": 3, "SM": 3, "SZ": 3, "GM": 3, "MW": 3, "SN": 3, "SX": 3, "KW": 3, "VG": 3, "BH": 3, "NC": 2, "TZ": 2, "GF": 2, "KY": 2, "SS": 2, "KN": 2, "MR": 2, "TD": 2, "NA": 2, "DM": 2, "SL": 2, "ST": 2, "GN": 2, "NE": 2, "CD": 2, "LR": 2, "MS": 2, "TG": 2, "BJ": 1, "KM": 1, "YT": 1, "JE": 1, "PW": 1, "XP": 1, "RW": 1, "ER": 1, "CV": 1, "GW": 1, "TO": 1, "LS": 1, "MP": 1, "GS": 1, "GY": 1, "CI": 1}, "by_hour_utc": {"0": 1173, "1": 640, "2": 365, "3": 183, "4": 130, "5": 138, "6": 153, "7": 201, "8": 313, "9": 650, "10": 1130, "11": 1651, "12": 2011, "13": 2268, "14": 2528, "15": 2600, "16": 2728, "17": 2783, "18": 2708, "19": 2676, "20": 2551, "21": 2339, "22": 2111, "23": 1556}, "by_weekday": {"0": 5173, "1": 5234, "2": 5153, "3": 5048, "4": 5005, "5": 4649, "6": 5324}, "by_opening_eco": {}, "monthly": {"2015-07": {"games": 8, "avg_rating": 1362}, "2015-08": {"games": 3, "avg_rating": 1435}, "2016-03": {"games": 33, "avg_rating": 1793}, "2016-04": {"games": 9, "avg_rating": 1861}, "2016-11": {"games": 1, "avg_rating": 1829}, "2017-07": {"games": 155, "avg_rating": 1753}, "2017-08": {"games": 112, "avg_rating": 1876}, "2017-09": {"games": 93, "avg_rating": 1849}, "2017-10": {"games": 120, "avg_rating": 1884}, "2017-11": {"games": 56, "avg_rating": 1876}, "2017-12": {"games": 5, "avg_rating": 1931}, "2018-01": {"games": 83, "avg_rating": 1936}, "2018-02": {"games": 625, "avg_rating": 2048}, "2018-03": {"games": 236, "avg_rating": 2070}, "2018-04": {"games": 131, "avg_rating": 2028}, "2018-05": {"games": 325, "avg_rating": 2033}, "2018-06": {"games": 214, "avg_rating": 2058}, "2018-07": {"games": 214, "avg_rating": 2046}, "2018-08": {"games": 193, "avg_rating": 2043}, "2018-09": {"games": 262, "avg_rating": 2140}, "2018-10": {"games": 111, "avg_rating": 2066}, "2018-11": {"games": 170, "avg_rating": 2012}, "2018-12": {"games": 250, "avg_rating": 2058}, "2019-01": {"games": 299, "avg_rating": 2105}, "2019-02": {"games": 243, "avg_rating": 2110}, "2019-03": {"games": 204, "avg_rating": 2055}, "2019-04": {"games": 229, "avg_rating": 2020}, "2019-05": {"games": 340, "avg_rating": 2068}, "2019-06": {"games": 344, "avg_rating": 2152}, "2019-07": {"games": 388, "avg_rating": 2148}, "2019-08": {"games": 403, "avg_rating": 2083}, "2019-09": {"games": 330, "avg_rating": 2118}, "2019-10": {"games": 349, "avg_rating": 2106}, "2019-11": {"games": 268, "avg_rating": 2131}, "2019-12": {"games": 359, "avg_rating": 2120}, "2020-01": {"games": 289, "avg_rating": 2158}, "2020-02": {"games": 207, "avg_rating": 2131}, "2020-03": {"games": 36, "avg_rating": 2163}, "2020-04": {"games": 9, "avg_rating": 2148}, "2020-05": {"games": 13, "avg_rating": 2170}, "2020-06": {"games": 44, "avg_rating": 2156}, "2020-07": {"games": 6, "avg_rating": 2118}, "2020-08": {"games": 300, "avg_rating": 2235}, "2020-09": {"games": 347, "avg_rating": 2177}, "2020-10": {"games": 329, "avg_rating": 2157}, "2020-11": {"games": 371, "avg_rating": 2168}, "2020-12": {"games": 405, "avg_rating": 2190}, "2021-01": {"games": 456, "avg_rating": 2206}, "2021-02": {"games": 450, "avg_rating": 2195}, "2021-03": {"games": 770, "avg_rating": 2142}, "2021-04": {"games": 117, "avg_rating": 2161}, "2021-05": {"games": 9, "avg_rating": 2151}, "2021-06": {"games": 17, "avg_rating": 2148}, "2021-07": {"games": 25, "avg_rating": 2164}, "2021-08": {"games": 6, "avg_rating": 2145}, "2021-09": {"games": 9, "avg_rating": 2118}, "2021-10": {"games": 138, "avg_rating": 2174}, "2021-11": {"games": 564, "avg_rating": 2154}, "2021-12": {"games": 490, "avg_rating": 2188}, "2022-01": {"games": 660, "avg_rating": 2237}, "2022-02": {"games": 320, "avg_rating": 2254}, "2022-03": {"games": 291, "avg_rating": 2195}, "2022-04": {"games": 414, "avg_rating": 2227}, "2022-05": {"games": 471, "avg_rating": 2264}, "2022-06": {"games": 499, "avg_rating": 2284}, "2022-07": {"games": 329, "avg_rating": 2221}, "2022-08": {"games": 370, "avg_rating": 2195}, "2022-09": {"games": 343, "avg_rating": 2254}, "2022-10": {"games": 208, "avg_rating": 2204}, "2022-11": {"games": 245, "avg_rating": 2232}, "2022-12": {"games": 274, "avg_rating": 2178}, "2023-01": {"games": 426, "avg_rating": 2201}, "2023-02": {"games": 568, "avg_rating": 2264}, "2023-03": {"games": 981, "avg_rating": 2237}, "2023-04": {"games": 705, "avg_rating": 2259}, "2023-05": {"games": 586, "avg_rating": 2261}, "2023-06": {"games": 1016, "avg_rating": 2272}, "2023-07": {"games": 638, "avg_rating": 2283}, "2023-08": {"games": 606, "avg_rating": 2288}, "2023-09": {"games": 381, "avg_rating": 2303}, "2023-10": {"games": 601, "avg_rating": 2296}, "2023-11": {"games": 458, "avg_rating": 2358}, "2023-12": {"games": 682, "avg_rating": 2335}, "2024-01": {"games": 605, "avg_rating": 2330}, "2024-02": {"games": 423, "avg_rating": 2349}, "2024-03": {"games": 335, "avg_rating": 2293}, "2024-04": {"games": 273, "avg_rating": 2297}, "2024-05": {"games": 232, "avg_rating": 2289}, "2024-06": {"games": 215, "avg_rating": 2299}, "2024-07": {"games": 166, "avg_rating": 2311}, "2024-08": {"games": 231, "avg_rating": 2350}, "2024-09": {"games": 914, "avg_rating": 2290}, "2024-10": {"games": 245, "avg_rating": 2272}, "2024-11": {"games": 94, "avg_rating": 2346}, "2024-12": {"games": 215, "avg_rating": 2314}, "2025-01": {"games": 293, "avg_rating": 2271}, "2025-02": {"games": 190, "avg_rating": 2294}, "2025-03": {"games": 182, "avg_rating": 2325}, "2025-04": {"games": 250, "avg_rating": 2302}, "2025-05": {"games": 165, "avg_rating": 2363}, "2025-06": {"games": 231, "avg_rating": 2318}, "2025-07": {"games": 327, "avg_rating": 2298}, "2025-08": {"games": 326, "avg_rating": 2297}, "2025-09": {"games": 278, "avg_rating": 2295}, "2025-10": {"games": 452, "avg_rating": 2317}, "2025-11": {"games": 579, "avg_rating": 2361}, "2025-12": {"games": 1291, "avg_rating": 2375}, "2026-01": {"games": 614, "avg_rating": 2391}, "2026-02": {"games": 483, "avg_rating": 2362}, "2026-03": {"games": 481, "avg_rating": 2423}, "2026-04": {"games": 506, "avg_rating": 2438}, "2026-05": {"games": 346, "avg_rating": 2388}}, "stats": {"chess_daily": {"last": {"rating": 1652, "date": 1573401330, "rd": 257}, "best": {"rating": 1652, "date": 1573401330, "game": "https://www.chess.com/game/daily/239736206"}, "record": {"win": 2, "loss": 0, "draw": 0, "time_per_move": 6235, "timeout_percent": 0}}, "chess_rapid": {"last": {"rating": 2199, "date": 1779704396, "rd": 44}, "best": {"rating": 2199, "date": 1779704396, "game": "https://www.chess.com/game/live/168921003738"}, "record": {"win": 45, "loss": 8, "draw": 3}}, "chess_bullet": {"last": {"rating": 2338, "date": 1777669440, "rd": 48}, "best": {"rating": 2428, "date": 1766859457, "game": "https://www.chess.com/game/live/119275167089"}, "record": {"win": 1193, "loss": 975, "draw": 169}}, "chess_blitz": {"last": {"rating": 2401, "date": 1779726389, "rd": 23}, "best": {"rating": 2539, "date": 1777495248, "game": "https://www.chess.com/game/live/169126074268"}, "record": {"win": 16255, "loss": 13780, "draw": 3151}}, "tactics": {"highest": {"rating": 2273, "date": 1435777209}, "lowest": {"rating": 2273, "date": 1435777209}}, "puzzle_rush": {"best": {"total_attempts": 24, "score": 23}}}};
+document.getElementById('u').textContent = D.username;
+document.getElementById('meta').textContent =
+  `${D.profile.name||''} · ${D.profile.location||''} · з ${new Date((D.profile.joined||0)*1000).toLocaleDateString('uk-UA')}`;
 
-// ====== UTILS ======
 const fmt = n => n.toLocaleString('uk-UA');
-const tooltip = document.getElementById('tooltip');
-const showTip = (e, html) => {
-  tooltip.innerHTML = html;
-  tooltip.style.left = (e.clientX + 14) + 'px';
-  tooltip.style.top = (e.clientY + 14) + 'px';
-  tooltip.style.opacity = 1;
-};
-const hideTip = () => tooltip.style.opacity = 0;
+document.getElementById('t-games').textContent = fmt(D.totals.games);
+document.getElementById('t-moves').textContent = fmt(D.totals.moves_approx);
+document.getElementById('t-opps').textContent = fmt(D.totals.unique_opponents);
+document.getElementById('t-wr').textContent = D.totals.win_pct + '%';
 
-document.getElementById('today').textContent = new Date().toLocaleDateString('uk-UA');
-
-// ====== COUNTERS ======
-function animateNum(el, target) {
-  const dur = 1600, start = performance.now();
-  function step(t) {
-    const p = Math.min(1, (t - start) / dur);
-    const eased = 1 - Math.pow(1 - p, 3);
-    el.textContent = fmt(Math.round(target * eased));
-    if (p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('in');
-      e.target.querySelectorAll('.num').forEach(n => animateNum(n, +n.dataset.target));
-      io.unobserve(e.target);
-    }
-  });
-}, { threshold: .15 });
-document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-// ====== FLAGS ======
-function flag(cc) {
-  if (!cc || cc.length !== 2 || /[X]/.test(cc[0])) return '🏳️';
-  if (cc === 'RU') return '💩';
-  return String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
-}
-const NAMES = {US:'США',RU:'Росія',DE:'Німеччина',IN:'Індія',FR:'Франція',BR:'Бразилія',ES:'Іспанія',PH:'Філіппіни',PL:'Польща',UA:'Україна',GB:'Велика Британія',RS:'Сербія',CA:'Канада',IT:'Італія',MX:'Мексика',NL:'Нідерланди',TR:'Туреччина',AR:'Аргентина',IL:'Ізраїль',ID:'Індонезія',IR:'Іран',CZ:'Чехія',RO:'Румунія',GR:'Греція',SE:'Швеція',NO:'Норвегія',HR:'Хорватія',HU:'Угорщина',DK:'Данія',BG:'Болгарія',CH:'Швейцарія',CO:'Колумбія',AU:'Австралія',EG:'Єгипет',PE:'Перу',AM:'Вірменія',VN:'В\'єтнам',BE:'Бельгія',AT:'Австрія',GE:'Грузія',BA:'Боснія',KZ:'Казахстан',FI:'Фінляндія',UZ:'Узбекистан',AZ:'Азербайджан',AL:'Албанія',MM:'М\'янма',IS:'Ісландія',MY:'Малайзія',JP:'Японія',CU:'Куба',SI:'Словенія',PT:'Португалія',CN:'Китай',SK:'Словаччина',VE:'Венесуела',LT:'Литва',SG:'Сінгапур',MK:'Македонія',CL:'Чилі',MA:'Марокко',ZA:'Південна Африка',ME:'Чорногорія',AE:'ОАЕ',XX:'(невідомо)',XE:'(Англія)',XC:'(Каталонія)',XS:'(Шотландія)',XB:'(Уельс)',XW:'(пд. Уельс)',XA:'(?)',XG:'(?)',XO:'(?)',XP:'(?)',EU:'Євросоюз',XK:'Косово',VA:'Ватикан',LV:'Латвія',TN:'Туніс',DO:'Домінікана',BY:'Білорусь',PS:'Палестина',BD:'Бангладеш',EC:'Еквадор',DZ:'Алжир',UY:'Уругвай',NZ:'Нова Зеландія',MN:'Монголія',PR:'Пуерто-Рико',KR:'Південна Корея',IE:'Ірландія',EE:'Естонія',NP:'Непал',SA:'Саудівська Аравія',CR:'Коста-Ріка',TH:'Таїланд',PK:'Пакистан',IQ:'Ірак',KP:'КНДР',NG:'Нігерія',MD:'Молдова',HK:'Гонконг',SY:'Сирія',AF:'Афганістан',LK:'Шрі-Ланка'};
-const nameOf = cc => NAMES[cc] || cc;
-
-// ====== I. COUNTRY LIST ======
-const countries = Object.entries(D.by_country).filter(([cc]) => !cc.startsWith('X') && cc !== 'EU');
-const topList = countries.slice(0, 30);
-const maxCount = countries[0][1];
-
-const listEl = document.getElementById('country-list');
-topList.forEach(([cc, n], i) => {
-  const row = document.createElement('div');
-  row.className = 'country-row';
-  row.innerHTML = `
-    <span class="rank">${String(i+1).padStart(2,'0')}</span>
-    <span class="flag">${flag(cc)}</span>
-    <span class="name">${nameOf(cc)} <span style="color: rgba(14,13,10,.4); font-family: 'JetBrains Mono', monospace; font-size: 11px;">${cc}</span></span>
-    <span class="count">${fmt(n)}</span>
-    <div class="bar" style="transform: scaleX(${(n/maxCount).toFixed(3)})"></div>
-  `;
-  row.addEventListener('mouseenter', (e) => showTip(e, `<b>${nameOf(cc)}</b><br>${fmt(n)} партій`));
-  row.addEventListener('mousemove', (e) => { tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY + 14) + 'px'; });
-  row.addEventListener('mouseleave', hideTip);
-  listEl.appendChild(row);
-});
-
-document.getElementById('top-country').textContent = `${nameOf(topList[0][0])} (${fmt(topList[0][1])})`;
-
-// ====== I. MAP ======
-// Use johan/world.geo.json — each feature has id = ISO 3166-1 alpha-3 ("UKR", "USA").
-// Reliable: id is a top-level string field, no number/string coercion issues.
-const A2_TO_A3 = {AF:"AFG",AL:"ALB",DZ:"DZA",AD:"AND",AO:"AGO",AG:"ATG",AR:"ARG",AM:"ARM",AU:"AUS",AT:"AUT",AZ:"AZE",BS:"BHS",BH:"BHR",BD:"BGD",BB:"BRB",BY:"BLR",BE:"BEL",BZ:"BLZ",BJ:"BEN",BT:"BTN",BO:"BOL",BA:"BIH",BW:"BWA",BR:"BRA",BN:"BRN",BG:"BGR",BF:"BFA",BI:"BDI",CV:"CPV",KH:"KHM",CM:"CMR",CA:"CAN",CF:"CAF",TD:"TCD",CL:"CHL",CN:"CHN",CO:"COL",KM:"COM",CG:"COG",CD:"COD",CR:"CRI",CI:"CIV",HR:"HRV",CU:"CUB",CY:"CYP",CZ:"CZE",DK:"DNK",DJ:"DJI",DM:"DMA",DO:"DOM",EC:"ECU",EG:"EGY",SV:"SLV",GQ:"GNQ",ER:"ERI",EE:"EST",SZ:"SWZ",ET:"ETH",FJ:"FJI",FI:"FIN",FR:"FRA",GA:"GAB",GM:"GMB",GE:"GEO",DE:"DEU",GH:"GHA",GR:"GRC",GL:"GRL",GD:"GRD",GT:"GTM",GN:"GIN",GW:"GNB",GY:"GUY",HT:"HTI",HN:"HND",HU:"HUN",IS:"ISL",IN:"IND",ID:"IDN",IR:"IRN",IQ:"IRQ",IE:"IRL",IL:"ISR",IT:"ITA",JM:"JAM",JP:"JPN",JO:"JOR",KZ:"KAZ",KE:"KEN",KI:"KIR",KP:"PRK",KR:"KOR",KW:"KWT",KG:"KGZ",LA:"LAO",LV:"LVA",LB:"LBN",LS:"LSO",LR:"LBR",LY:"LBY",LI:"LIE",LT:"LTU",LU:"LUX",MG:"MDG",MW:"MWI",MY:"MYS",MV:"MDV",ML:"MLI",MT:"MLT",MH:"MHL",MR:"MRT",MU:"MUS",MX:"MEX",FM:"FSM",MD:"MDA",MC:"MCO",MN:"MNG",ME:"MNE",MA:"MAR",MZ:"MOZ",MM:"MMR",NA:"NAM",NR:"NRU",NP:"NPL",NL:"NLD",NZ:"NZL",NI:"NIC",NE:"NER",NG:"NGA",MK:"MKD",NO:"NOR",OM:"OMN",PK:"PAK",PW:"PLW",PS:"PSE",PA:"PAN",PG:"PNG",PY:"PRY",PE:"PER",PH:"PHL",PL:"POL",PT:"PRT",QA:"QAT",RO:"ROU",RU:"RUS",RW:"RWA",KN:"KNA",LC:"LCA",VC:"VCT",WS:"WSM",SM:"SMR",ST:"STP",SA:"SAU",SN:"SEN",RS:"SRB",SC:"SYC",SL:"SLE",SG:"SGP",SK:"SVK",SI:"SVN",SB:"SLB",SO:"SOM",ZA:"ZAF",SS:"SSD",ES:"ESP",LK:"LKA",SD:"SDN",SR:"SUR",SE:"SWE",CH:"CHE",SY:"SYR",TW:"TWN",TJ:"TJK",TZ:"TZA",TH:"THA",TL:"TLS",TG:"TGO",TO:"TON",TT:"TTO",TN:"TUN",TR:"TUR",TM:"TKM",TV:"TUV",UG:"UGA",UA:"UKR",AE:"ARE",GB:"GBR",US:"USA",UY:"URY",UZ:"UZB",VU:"VUT",VE:"VEN",VN:"VNM",YE:"YEM",ZM:"ZMB",ZW:"ZWE",XK:"KOS",EH:"ESH",PR:"PRI",HK:"HKG",GL:"GRL",FK:"FLK",NC:"NCL",PF:"PYF"};
-
-// Build ISO3 -> count map
-const countsA3 = {};
-Object.entries(D.by_country).forEach(([cc, n]) => {
-  const a3 = A2_TO_A3[cc];
-  if (a3) countsA3[a3] = n;
-});
-
-const colorScale = d3.scalePow().exponent(.42).domain([1, maxCount]).range(['#f0e4c8', '#7a1212']);
-const legendBar = document.getElementById('legend-bar');
-for (let i = 0; i < 8; i++) {
-  const s = document.createElement('span');
-  s.style.background = colorScale(1 + (maxCount - 1) * i / 7);
-  legendBar.appendChild(s);
-}
-
-const mapSvg = d3.select('#map');
-const W = 1000, H = 540;
-const proj = d3.geoNaturalEarth1().scale(190).translate([W/2, H/2 + 10]);
+// --- карта ---
+const w = document.getElementById('map').clientWidth, h = 520;
+const svg = d3.select('#map').append('svg').attr('width',w).attr('height',h);
+const proj = d3.geoNaturalEarth1().scale(w/6.3).translate([w/2, h/2]);
 const path = d3.geoPath(proj);
+const tt = d3.select('#tt');
 
-d3.json('https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json').then(world => {
-  mapSvg.append('path').attr('class','sphere').attr('d', path({type:'Sphere'}));
-  const grat = d3.geoGraticule().step([20,20])();
-  mapSvg.append('path').attr('class','graticule').attr('d', path(grat));
-  const feats = world.features;
+const counts = D.by_country;
+const max = Math.max(...Object.values(counts));
+const color = d3.scaleSequential(d3.interpolateYlOrRd).domain([0, Math.log(max+1)]);
 
-  // Quick sanity: log how many features matched, useful for debugging
-  let matched = 0;
-  feats.forEach(f => { if (countsA3[f.id]) matched++; });
-  console.log(`Map: ${feats.length} features, ${matched} matched countries with data`);
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(world => {
+  const feats = topojson.feature(world, world.objects.countries).features;
+  // мапінг ISO numeric -> ISO2 потрібен; беремо з d.properties (name)
+  // chess.com дає ISO2, тому співставимо через name з вшитого довідника
+  const iso2to3 = {AD:'AND',AE:'ARE',AF:'AFG',AG:'ATG',AI:'AIA',AL:'ALB',AM:'ARM',AO:'AGO',AR:'ARG',AS:'ASM',AT:'AUT',AU:'AUS',AW:'ABW',AX:'ALA',AZ:'AZE',BA:'BIH',BB:'BRB',BD:'BGD',BE:'BEL',BF:'BFA',BG:'BGR',BH:'BHR',BI:'BDI',BJ:'BEN',BL:'BLM',BM:'BMU',BN:'BRN',BO:'BOL',BR:'BRA',BS:'BHS',BT:'BTN',BW:'BWA',BY:'BLR',BZ:'BLZ',CA:'CAN',CD:'COD',CF:'CAF',CG:'COG',CH:'CHE',CI:'CIV',CK:'COK',CL:'CHL',CM:'CMR',CN:'CHN',CO:'COL',CR:'CRI',CU:'CUB',CV:'CPV',CW:'CUW',CY:'CYP',CZ:'CZE',DE:'DEU',DJ:'DJI',DK:'DNK',DM:'DMA',DO:'DOM',DZ:'DZA',EC:'ECU',EE:'EST',EG:'EGY',ER:'ERI',ES:'ESP',ET:'ETH',FI:'FIN',FJ:'FJI',FK:'FLK',FM:'FSM',FO:'FRO',FR:'FRA',GA:'GAB',GB:'GBR',GD:'GRD',GE:'GEO',GH:'GHA',GI:'GIB',GL:'GRL',GM:'GMB',GN:'GIN',GQ:'GNQ',GR:'GRC',GT:'GTM',GU:'GUM',GW:'GNB',GY:'GUY',HK:'HKG',HN:'HND',HR:'HRV',HT:'HTI',HU:'HUN',ID:'IDN',IE:'IRL',IL:'ISR',IM:'IMN',IN:'IND',IQ:'IRQ',IR:'IRN',IS:'ISL',IT:'ITA',JE:'JEY',JM:'JAM',JO:'JOR',JP:'JPN',KE:'KEN',KG:'KGZ',KH:'KHM',KI:'KIR',KM:'COM',KN:'KNA',KP:'PRK',KR:'KOR',KW:'KWT',KY:'CYM',KZ:'KAZ',LA:'LAO',LB:'LBN',LC:'LCA',LI:'LIE',LK:'LKA',LR:'LBR',LS:'LSO',LT:'LTU',LU:'LUX',LV:'LVA',LY:'LBY',MA:'MAR',MC:'MCO',MD:'MDA',ME:'MNE',MG:'MDG',MH:'MHL',MK:'MKD',ML:'MLI',MM:'MMR',MN:'MNG',MO:'MAC',MP:'MNP',MR:'MRT',MS:'MSR',MT:'MLT',MU:'MUS',MV:'MDV',MW:'MWI',MX:'MEX',MY:'MYS',MZ:'MOZ',NA:'NAM',NC:'NCL',NE:'NER',NG:'NGA',NI:'NIC',NL:'NLD',NO:'NOR',NP:'NPL',NR:'NRU',NU:'NIU',NZ:'NZL',OM:'OMN',PA:'PAN',PE:'PER',PF:'PYF',PG:'PNG',PH:'PHL',PK:'PAK',PL:'POL',PR:'PRI',PS:'PSE',PT:'PRT',PW:'PLW',PY:'PRY',QA:'QAT',RO:'ROU',RS:'SRB',RU:'RUS',RW:'RWA',SA:'SAU',SB:'SLB',SC:'SYC',SD:'SDN',SE:'SWE',SG:'SGP',SI:'SVN',SK:'SVK',SL:'SLE',SM:'SMR',SN:'SEN',SO:'SOM',SR:'SUR',SS:'SSD',ST:'STP',SV:'SLV',SY:'SYR',SZ:'SWZ',TC:'TCA',TD:'TCD',TG:'TGO',TH:'THA',TJ:'TJK',TM:'TKM',TN:'TUN',TO:'TON',TR:'TUR',TT:'TTO',TV:'TUV',TW:'TWN',TZ:'TZA',UA:'UKR',UG:'UGA',US:'USA',UY:'URY',UZ:'UZB',VA:'VAT',VC:'VCT',VE:'VEN',VG:'VGB',VI:'VIR',VN:'VNM',VU:'VUT',WS:'WSM',XK:'XKX',YE:'YEM',ZA:'ZAF',ZM:'ZMB',ZW:'ZWE'};
+  // world-atlas використовує ISO numeric у `id` та довгу назву в properties.name; нам зручніше через ISO3.
+  // Для простоти йдемо через числовий id -> топонім -> наш ISO2. Простіше: робимо швидкий map через features.properties.name та a2->name (мінімальний словник тут пропущено).
+  // Натомість: розфарбуємо за збігом ISO3 з id-2-iso3 у feature.id (числовий).
+  // d3-geo countries-50m містить id = ISO numeric (string). Скористаємось довідником ISO2->numeric тільки для країн з нашого списку.
+  const iso2num = {UA:'804',US:'840',RU:'643',GB:'826',DE:'276',FR:'250',ES:'724',IT:'380',PL:'616',IN:'356',CN:'156',JP:'392',KR:'410',BR:'076',CA:'124',AR:'032',MX:'484',TR:'792',NL:'528',BE:'056',CH:'756',AT:'040',SE:'752',NO:'578',FI:'246',DK:'208',CZ:'203',SK:'703',HU:'348',RO:'642',BG:'100',GR:'300',PT:'620',IE:'372',IS:'352',EE:'233',LV:'428',LT:'440',BY:'112',MD:'498',GE:'268',AM:'051',AZ:'031',KZ:'398',UZ:'860',KG:'417',TJ:'762',TM:'795',MN:'496',VN:'704',TH:'764',PH:'608',ID:'360',MY:'458',SG:'702',PK:'586',BD:'050',LK:'144',NP:'524',IR:'364',IQ:'368',SY:'760',LB:'422',IL:'376',JO:'400',SA:'682',AE:'784',EG:'818',MA:'504',DZ:'012',TN:'788',LY:'434',NG:'566',ZA:'710',KE:'404',AU:'036',NZ:'554',CL:'152',CO:'170',VE:'862',PE:'604',EC:'218',CU:'192',DO:'214',CR:'188',PA:'591',UY:'858',BO:'068',PY:'600',HN:'340',GT:'320',SV:'222',NI:'558'};
+  const numToCount = {};
+  Object.entries(counts).forEach(([cc,n]) => { const num = iso2num[cc]; if (num) numToCount[num] = n; });
 
-  mapSvg.append('g').selectAll('path')
-    .data(feats).enter().append('path')
-    .attr('class','land')
-    .attr('d', path)
-    .attr('fill', d => {
-      const n = countsA3[d.id];
-      return n ? colorScale(n) : '#d8cfb9';
-    })
-    .on('mousemove', (e, d) => {
-      const n = countsA3[d.id] || 0;
-      const nm = d.properties && d.properties.name;
-      // Reverse lookup ISO3 -> our ISO2 for Ukrainian name
-      const a2 = Object.keys(A2_TO_A3).find(k => A2_TO_A3[k] === d.id);
-      const localName = nameOf(a2) || nm || '?';
-      showTip(e, `<b>${localName}</b><br>${n ? fmt(n) + ' партій' : 'жодної партії'}`);
-    })
-    .on('mouseleave', hideTip);
+  svg.append('g').attr('class','country').selectAll('path')
+    .data(feats).join('path')
+      .attr('d', path)
+      .attr('fill', d => {
+        const c = numToCount[d.id];
+        return c ? color(Math.log(c+1)) : '#333';
+      })
+      .on('mousemove', (e,d) => {
+        const c = numToCount[d.id] || 0;
+        tt.style('left',(e.pageX+10)+'px').style('top',(e.pageY+10)+'px').style('opacity',1)
+          .text(`${d.properties.name}: ${c} ${c===1?'партія':'партій'}`);
+      })
+      .on('mouseout', ()=>tt.style('opacity',0));
 });
 
-// ====== II. RATING TIMELINE ======
-const monthEntries = Object.entries(D.monthly).sort((a,b) => a[0].localeCompare(b[0]));
-const ratingData = monthEntries
-  .map(([m, v]) => ({ m, ts: new Date(m + '-15').getTime(), rating: v.avg_rating, games: v.games }))
-  .filter(d => d.rating !== null);
+document.getElementById('country-list').innerHTML =
+  Object.entries(D.by_country).slice(0,20).map(([k,v])=>`<b>${k}</b>:${v}`).join('  ·  ');
 
-// Smoothed line (3-month moving avg, weighted by games)
-const smoothed = ratingData.map((d, i) => {
-  const window = ratingData.slice(Math.max(0, i-1), i+2);
-  const totalGames = window.reduce((s, x) => s + x.games, 0);
-  const wAvg = window.reduce((s, x) => s + x.rating * x.games, 0) / totalGames;
-  return { ...d, smooth: wAvg };
+// --- rating chart ---
+const months = Object.keys(D.monthly);
+const ratings = months.map(m => D.monthly[m].avg_rating);
+const games = months.map(m => D.monthly[m].games);
+new Chart(document.getElementById('rating'), {
+  type:'line',
+  data:{labels:months, datasets:[
+    {label:'Середній рейтинг', data:ratings, borderColor:'#ffd54f', backgroundColor:'#ffd54f33', tension:0.2, yAxisID:'y'},
+    {label:'Партій за місяць', data:games, borderColor:'#64b5f6', backgroundColor:'#64b5f633', tension:0.2, yAxisID:'y1', hidden:true},
+  ]},
+  options:{responsive:true, scales:{y:{position:'left'}, y1:{position:'right', grid:{display:false}}}}
 });
 
-const RW = 1100, RH = 340, MM = {top: 20, right: 20, bottom: 28, left: 44};
-const rsvg = d3.select('#rating-svg');
-const defs = rsvg.append('defs');
-const grad = defs.append('linearGradient').attr('id','area-grad').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
-grad.append('stop').attr('offset','0%').attr('stop-color','#b78c43').attr('stop-opacity',.4);
-grad.append('stop').attr('offset','100%').attr('stop-color','#b78c43').attr('stop-opacity',0);
-
-const x = d3.scaleTime()
-  .domain(d3.extent(smoothed, d => d.ts))
-  .range([MM.left, RW - MM.right]);
-const y = d3.scaleLinear()
-  .domain([d3.min(smoothed, d => d.rating) - 60, d3.max(smoothed, d => d.rating) + 40])
-  .range([RH - MM.bottom, MM.top]);
-
-const area = d3.area().x(d => x(d.ts)).y0(RH - MM.bottom).y1(d => y(d.smooth)).curve(d3.curveMonotoneX);
-const line = d3.line().x(d => x(d.ts)).y(d => y(d.rating)).curve(d3.curveMonotoneX);
-const smoothLine = d3.line().x(d => x(d.ts)).y(d => y(d.smooth)).curve(d3.curveMonotoneX);
-
-rsvg.append('path').attr('class','rating-area').attr('d', area(smoothed));
-rsvg.append('path').attr('class','rating-line').attr('d', line(smoothed)).attr('opacity', .35);
-const sp = rsvg.append('path').attr('class','rating-line smooth').attr('d', smoothLine(smoothed));
-const total = sp.node().getTotalLength();
-sp.attr('stroke-dasharray', `${total} ${total}`).attr('stroke-dashoffset', total)
-  .transition().duration(2400).delay(400).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0);
-
-// Axes
-const xAxis = d3.axisBottom(x).tickFormat(d3.timeFormat('%Y')).ticks(11);
-const yAxis = d3.axisLeft(y).ticks(6).tickSize(-(RW - MM.left - MM.right));
-rsvg.append('g').attr('class','rating-axis').attr('transform',`translate(0,${RH - MM.bottom})`).call(xAxis);
-rsvg.append('g').attr('class','rating-axis').attr('transform',`translate(${MM.left},0)`).call(yAxis).call(g => g.selectAll('.tick line').attr('stroke-dasharray','2 3'));
-
-// Peak marker
-const peak = smoothed.reduce((a, b) => b.rating > a.rating ? b : a);
-const peakG = rsvg.append('g').attr('class','rating-events');
-peakG.append('line').attr('x1', x(peak.ts)).attr('x2', x(peak.ts)).attr('y1', y(peak.rating) - 6).attr('y2', RH - MM.bottom);
-peakG.append('circle').attr('class','peak-dot').attr('cx', x(peak.ts)).attr('cy', y(peak.rating)).attr('r', 5);
-peakG.append('text').attr('x', x(peak.ts) + 8).attr('y', y(peak.rating) - 10).text(`пік ${peak.rating} · ${peak.m}`);
-
-// Start label
-const first = smoothed[0];
-rsvg.append('g').attr('class','rating-events')
-  .append('text').attr('x', x(first.ts) + 6).attr('y', y(first.rating) + 16).text(`старт ${first.rating}`);
-
-// ====== III. CLOCK (radial hours) ======
-const hours = Array.from({length: 24}, (_, i) => +D.by_hour_utc[i] || 0);
-const maxH = Math.max(...hours);
-const peakHourIdx = hours.indexOf(maxH);
-document.getElementById('peak-hour').textContent = `${peakHourIdx}:00 UTC (${fmt(maxH)} партій)`;
-
-const csvg = d3.select('#clock-svg');
-const innerR = 40, outerR = 140;
-const angle = i => (i / 24) * Math.PI * 2 - Math.PI / 2;
-
-// Outer ring
-csvg.append('circle').attr('class','clock-ring').attr('cx',0).attr('cy',0).attr('r',outerR);
-csvg.append('circle').attr('class','clock-ring').attr('cx',0).attr('cy',0).attr('r',innerR).attr('opacity',.4);
-
-// Spokes
-for (let i = 0; i < 24; i++) {
-  const a = angle(i);
-  csvg.append('line').attr('class','clock-spoke')
-    .attr('x1', Math.cos(a) * innerR).attr('y1', Math.sin(a) * innerR)
-    .attr('x2', Math.cos(a) * outerR).attr('y2', Math.sin(a) * outerR)
-    .attr('opacity', i % 6 === 0 ? .6 : .15);
-}
-
-// Bars
-const arc = d3.arc().innerRadius(innerR).outerRadius(d => innerR + (outerR - innerR) * (d.v / maxH));
-hours.forEach((v, i) => {
-  const a0 = angle(i) + Math.PI / 2 - Math.PI / 24;
-  const a1 = angle(i) + Math.PI / 2 + Math.PI / 24;
-  csvg.append('path').attr('class','clock-arc')
-    .attr('d', arc({ startAngle: a0, endAngle: a1, v }))
-    .on('mousemove', e => showTip(e, `<b>${i}:00 UTC</b><br>${fmt(v)} партій`))
-    .on('mouseleave', hideTip);
+// --- hours ---
+const hours = Array.from({length:24}, (_,i)=>D.by_hour_utc[i]||0);
+new Chart(document.getElementById('hours'), {
+  type:'bar',
+  data:{labels:hours.map((_,i)=>i+':00'), datasets:[{label:'UTC година', data:hours, backgroundColor:'#81c784'}]}
 });
 
-// Hour labels
-[0, 6, 12, 18].forEach(i => {
-  const a = angle(i);
-  csvg.append('text').attr('class','clock-label')
-    .attr('x', Math.cos(a) * (outerR + 14)).attr('y', Math.sin(a) * (outerR + 14))
-    .attr('text-anchor','middle').attr('dominant-baseline','middle')
-    .text(i.toString().padStart(2,'0') + 'h');
+// --- weekdays ---
+const wd = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map((n,i)=>({n, v:D.by_weekday[i]||0}));
+new Chart(document.getElementById('weekdays'), {
+  type:'bar',
+  data:{labels:wd.map(x=>x.n), datasets:[{label:'Партій', data:wd.map(x=>x.v), backgroundColor:'#ba68c8'}]}
 });
 
-// ====== III. WEEKDAYS ======
-const wdLabels = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
-const wdVals = wdLabels.map((_, i) => +D.by_weekday[i] || 0);
-const maxWd = Math.max(...wdVals);
-const wdEl = document.getElementById('weekdays');
-wdVals.forEach((v, i) => {
-  const d = document.createElement('div');
-  d.dataset.label = wdLabels[i];
-  d.dataset.count = fmt(v);
-  d.style.height = (v / maxWd * 100) + '%';
-  d.addEventListener('mousemove', e => showTip(e, `<b>${wdLabels[i]}</b><br>${fmt(v)} партій`));
-  d.addEventListener('mouseleave', hideTip);
-  wdEl.appendChild(d);
+// --- ECO openings ---
+const ecos = Object.entries(D.by_opening_eco).slice(0,15);
+new Chart(document.getElementById('ecos'), {
+  type:'bar',
+  data:{labels:ecos.map(x=>x[0]), datasets:[{label:'Партій', data:ecos.map(x=>x[1]), backgroundColor:'#ff8a65'}]},
+  options:{indexAxis:'y'}
 });
-
-// ====== V. CURIOSITIES ======
-const peakBlitz = 2539;
-const totalSec = D.totals.plies * 7; // rough estimate at 7s/ply for blitz
-const totalDays = Math.round(totalSec / 86400);
-const e2eTimePct = ((100 * D.totals.wins) / D.totals.games).toFixed(1);
-const opponentsPct = (D.totals.unique_opponents / D.totals.games * 100).toFixed(1);
-const sortedM = Object.entries(D.monthly).sort((a,b) => b[1].games - a[1].games);
-const busiest = sortedM[0];
-
-const curios = [
-  { kicker: 'дистанція фігур', big: '~214 км', body: `Якщо припустити, що середній хід фігури — три клітини по 5 см, то всі ${fmt(D.totals.moves_approx)} ходів сумарно подолали приблизно стільки ж, скільки від Тернополя до Львова й назад.` },
-  { kicker: 'найбурхливіший місяць', big: busiest[0], body: `<b>${fmt(busiest[1].games)} партій</b> за один місяць — у середньому ${(busiest[1].games / 30).toFixed(1)} на день. Рейтинг тоді тримався на ${busiest[1].avg_rating}.` },
-  { kicker: 'улюблений формат', big: 'Блітц 93%', body: `${fmt(D.by_time_class.blitz)} партій у блітці проти ${fmt(D.by_time_class.bullet)} в кулі, ${fmt(D.by_time_class.rapid)} рапіду і всього ${D.by_time_class.daily} в добовому.` },
-  { kicker: 'різноманіття', big: opponentsPct + '%', body: `Унікальних суперників — ${fmt(D.totals.unique_opponents)} на ${fmt(D.totals.games)} партій. Тобто кожна друга партія — з новим гравцем.` },
-  { kicker: 'нічна сова', big: peakHourIdx + ':00 UTC', body: `Пік активності — ${peakHourIdx}:00 за Гринвічем (це ${(peakHourIdx + 2) % 24}:00 за Києвом). Найменше партій між 04:00 та 06:00 UTC.` },
-  { kicker: 'win rate', big: D.totals.win_pct + '%', body: `${fmt(D.totals.wins)} перемог, ${fmt(D.totals.losses)} поразок, ${fmt(D.totals.draws)} нічиїх. Перевага у ${fmt(D.totals.wins - D.totals.losses)} партій.` },
-];
-const cur = document.getElementById('curios');
-curios.forEach(c => {
-  const d = document.createElement('div');
-  d.style.cssText = 'border-top: 1px solid var(--ink); padding-top: 16px;';
-  d.innerHTML = `
-    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--blood);">${c.kicker}</div>
-    <div style="font-family: 'Fraunces', serif; font-weight: 700; font-size: 36px; line-height: 1.05; margin: 10px 0 12px; letter-spacing: -.02em; font-variation-settings: 'SOFT' 100;">${c.big}</div>
-    <div style="font-family: 'Cormorant Garamond', serif; font-size: 17px; line-height: 1.5; color: rgba(14,13,10,.78);">${c.body}</div>
-  `;
-  cur.appendChild(d);
-});
-
-// ====== Quote ======
-const quotes = [
-  `Я ходив півтора мільйона разів — і жоден з них не був останнім.`,
-  `Тридцять п'ять тисяч партій. Двісті чотири країни. Один любитель.`,
-  `Все, що я знаю про шахи, поміщається в 1 427 745 ходів.`,
-];
-document.getElementById('quote-text').textContent = quotes[Math.floor(Math.random() * quotes.length)];
 </script>
 </body>
 </html>
